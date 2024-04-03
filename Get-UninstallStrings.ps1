@@ -1,1 +1,0 @@
-﻿Get-ADComputer -Filter * -Properties lastlogontimestamp,operatingsystem,operatingsystemversion  | select name,distinguishedname,@{ n = "LastLogonDate"; e = { [datetime]::FromFileTime( $_.lastLogonTimestamp ) } },operatingsystem,operatingsystemversion | ogv
