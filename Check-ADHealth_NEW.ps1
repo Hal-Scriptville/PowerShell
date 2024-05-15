@@ -1,3 +1,8 @@
+# Now use $orgDir as the base for all other file operations
+$comp = $env:computername 
+$org = "YourCompanyName" # Change this to your actual company name
+$orgDir = Join-Path -Path "." -ChildPath $org
+
 # Define the base directory
 $baseDir = "C:\Temp"
 $orgDir = Join-Path -Path $baseDir -ChildPath $org
@@ -8,10 +13,6 @@ if (-not (Test-Path -Path $baseDir)) {
     Write-Host "Created base directory: $baseDir"
 }
 
-# Now use $orgDir as the base for all other file operations
-$comp = $env:computername 
-$org = "YourCompanyName" # Change this to your actual company name
-$orgDir = Join-Path -Path "." -ChildPath $org
 
 # Function to log messages
 function Write-Log {
