@@ -1,3 +1,14 @@
+# Define the base directory
+$baseDir = "C:\Temp"
+$orgDir = Join-Path -Path $baseDir -ChildPath $org
+
+# Check and create the base directory if it does not exist
+if (-not (Test-Path -Path $baseDir)) {
+    New-Item -Path $baseDir -ItemType Directory -Force | Out-Null
+    Write-Host "Created base directory: $baseDir"
+}
+
+# Now use $orgDir as the base for all other file operations
 $comp = $env:computername 
 $org = "YourCompanyName" # Change this to your actual company name
 $orgDir = Join-Path -Path "." -ChildPath $org
