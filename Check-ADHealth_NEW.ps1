@@ -1,79 +1,77 @@
 $comp = $env:computername 
-$org = "Change to Company Name"
-$FormatEnumerationLimit = -1
+$org = "YourCompanyName" # Change this to your actual company name
+$orgDir = Join-Path -Path "." -ChildPath $org
 
-# Logging function
+# Function to log messages
 function Write-Log {
     param([string]$message)
-    "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')): $message" | Out-File -FilePath ".\$org\script_log.txt" -Append
+    $logPath = Join-Path -Path $orgDir -ChildPath "script_log.txt"
+    "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')): $message" | Out-File -FilePath $logPath -Append
 }
 
-# Error handling function
+# Function to handle errors
 function Handle-Error {
     param($error)
     Write-Log "ERROR: $error"
 }
 
-# Ensure the ActiveDirectory module is available
-if (-not (Get-Module -Name ActiveDirectory -ListAvailable)) {
-    Write-Host "ActiveDirectory module is not installed. Exiting script."
-    exit
+# Check and create directory
+if (-not (Test-Path -Path $orgDir)) {
+    New-Item -Path $orgDir -ItemType Directory -Force | Out-Null
+    Write-Log "Created directory: $orgDir"
 }
 
-Import-Module -Name ActiveDirectory -ErrorAction Stop
-
-Write-Log "Creating directory for $org"
-New-Item -Path . -Name $org -ItemType Directory -ErrorAction Continue
-
-# Start the transcript with a new file name including "transcript"
-$transcriptFileName = ".\$org\${comp}_transcript.txt"
+# Start the transcript with a new file name
+$transcriptFileName = Join-Path -Path $orgDir -ChildPath "${comp}_transcript.txt"
 Start-Transcript -Path $transcriptFileName -ErrorAction Continue
 
-# Collecting various AD information using modular functions
-function Collect-ADInformation {
-    Write-Log "Collecting list of Active Directory sites"
-    Get-ADReplicationSite -Filter * | Format-Table -AutoSize | Out-File -FilePath ".\$org\Sites.txt"
+# Collect FSMO Roles Information
+function Collect-FSMORoles {
+    try {
+        $forest = Get-ADForest
+        $domain = Get-ADDomain
 
-    Write-Log "Collecting FSMO Roles Information"
-    $forest = Get-ADForest
-    $domain = Get-ADDomain
+        $FSMORoles = @{
+            "Schema Master" = $forest.SchemaMaster;
+            "Domain Naming Master" = $forest.DomainNamingMaster;
+            "Infrastructure Master" = $domain.InfrastructureMaster;
+            "RID Master" = $domain.RIDMaster;
+            "PDC Emulator" = $domain.PDCEmulator;
+        }
 
-    $FSMORoles = @{
-        "Schema Master" = $forest.SchemaMaster;
-        "Domain Naming Master" = $forest.DomainNamingMaster;
-        "Infrastructure Master" = $domain.InfrastructureMaster;
-        "RID Master" = $domain.RIDMaster;
-        "PDC Emulator" = $domain.PDCEmulator;
+        $FSMORolesFilePath = Join-Path -Path $orgDir -ChildPath "FSMORoles.txt"
+        $FSMORoles | Out-File -FilePath $FSMORolesFilePath
+        Write-Log "FSMO roles collected successfully."
+    } catch {
+        Handle-Error $_.Exception.Message
     }
-
-    $FSMORoles | Out-File -FilePath ".\$org\FSMORoles.txt"
 }
 
-# Run the Collect-ADInformation function
-Collect-ADInformation
+# Run FSMO roles collection
+Collect-FSMORoles
 
 # Collecting data using Invoke-Command for better performance
 $DCs = Get-ADDomainController -Filter *
-
 foreach ($DC in $DCs) {
     $scriptBlock = {
         param($org)
         # Replication information
-        repadmin /showrepl $env:COMPUTERNAME | Out-File -FilePath ".\$org\ReplicationInfo_$env:COMPUTERNAME.txt"
+        $replicationInfoPath = Join-Path -Path $org -ChildPath ("ReplicationInfo_$env:COMPUTERNAME.txt")
+        repadmin /showrepl | Out-File -FilePath $replicationInfoPath
         
         # HotFix information
+        $hotFixesPath = Join-Path -Path $org -ChildPath ("HotFixes_$env:COMPUTERNAME.txt")
         $hotfixes = Get-WmiObject -Class Win32_QuickFixEngineering
-        $hotfixes | Select-Object Description, HotFixID, InstalledOn | Out-File -FilePath ".\$org\HotFixes_$env:COMPUTERNAME.txt"
+        $hotfixes | Select-Object Description, HotFixID, InstalledOn | Out-File -FilePath $hotFixesPath
         
         # System and Application logs
-        Get-EventLog -LogName application -Newest 5000 |
-            Export-Csv -Path ".\$org\AppLog_$env:COMPUTERNAME.csv" -NoTypeInformation
-
-        Get-EventLog -LogName system -Newest 5000 |
-            Export-Csv -Path ".\$org\SysLog_$env:COMPUTERNAME.csv" -NoTypeInformation
+        $appLogPath = Join-Path -Path $org -ChildPath ("AppLog_$env:COMPUTERNAME.csv")
+        $sysLogPath = Join-Path -Path $org -ChildPath ("SysLog_$env:COMPUTERNAME.csv")
+        Get-EventLog -LogName application -Newest 5000 | Export-Csv -Path $appLogPath -NoTypeInformation
+        Get-EventLog -LogName system -Newest 5000 | Export-Csv -Path $sysLogPath -NoTypeInformation
     }
-    Invoke-Command -ComputerName $DC.Name -ScriptBlock $scriptBlock -ArgumentList $org -ErrorAction Continue
+    Invoke-Command -ComputerName $DC.Name -ScriptBlock $scriptBlock -ArgumentList $orgDir -ErrorAction Continue
 }
 
 Stop-Transcript
-Write-Log "Script execution completed"
+Write-Log "Script execution completed."
