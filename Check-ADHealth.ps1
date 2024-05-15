@@ -49,9 +49,18 @@ foreach ($DC in $DCs) {
 # Collect Application and System Log for each DC
 foreach ($DC in $DCs) {
     Write-Output "Collecting Application and System Log for $DC"
-    Get-EventLog -LogName application -ComputerName $DC.Name -Newest 5000 | Out-File -FilePath .\$org\AppLog_$($DC.Name).txt
-    Get-EventLog -LogName system -ComputerName $DC.Name -Newest 5000 | Out-File -FilePath .\$org\SysLog_$($DC.Name).txt
+
+    # Collect and export the Application log
+    Get-EventLog -LogName application -ComputerName $DC.Name -Newest 5000 |
+        Select-Object TimeGenerated, Source, EventID, EntryType, Message |
+        Export-Csv -Path ".\$org\AppLog_$($DC.Name).csv" -NoTypeInformation
+
+    # Collect and export the System log
+    Get-EventLog -LogName system -ComputerName $DC.Name -Newest 5000 |
+        Select-Object TimeGenerated, Source, EventID, EntryType, Message |
+        Export-Csv -Path ".\$org\SysLog_$($DC.Name).csv" -NoTypeInformation
 }
+
 
 # Create computer subdirectory for each DC
 foreach ($DC in $DCs) {
