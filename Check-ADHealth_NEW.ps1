@@ -45,12 +45,12 @@ foreach ($DC in $DCs) {
     try {
         # Replication information
         $replicationFilePath = Join-Path -Path $dcPath -ChildPath "replication_info.txt"
-        repadmin /showrepl $DC.HostName | Out-File -Path $replicationFilePath
+        repadmin /showrepl $DC.HostName | Out-File -FilePath $replicationFilePath
         Write-Log "Replication info written for $($DC.Name)"
 
         # HotFix information
         $hotFixFilePath = Join-Path -Path $dcPath -ChildPath "hotfixes.txt"
-        Get-HotFix -ComputerName $DC.Name | Format-List | Out-File -Path $hotFixFilePath
+        Get-HotFix -ComputerName $DC.Name | Format-List | Out-File -FilePath $hotFixFilePath
         Write-Log "Hotfix info written for $($DC.Name)"
 
         # System and Application logs
