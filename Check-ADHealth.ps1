@@ -45,6 +45,21 @@ foreach ($DC in $DCs) {
     $hotfixes | Select-Object Description, HotFixID, InstalledOn | Out-File -FilePath .\$org\HotFixes_$($DC.Name).txt
 }
 
+# Collect FSMO Roles Information
+Write-Output "Collecting FSMO Roles Information"
+$forest = Get-ADForest
+$domain = Get-ADDomain
+
+$FSMORoles = @{
+    "Schema Master" = $forest.SchemaMaster;
+    "Domain Naming Master" = $forest.DomainNamingMaster;
+    "Infrastructure Master" = $domain.InfrastructureMaster;
+    "RID Master" = $domain.RIDMaster;
+    "PDC Emulator" = $domain.PDCEmulator;
+}
+
+$FSMORoles | Out-File -FilePath .\$org\FSMORoles.txt
+
 
 # Collect Application and System Log for each DC
 foreach ($DC in $DCs) {
