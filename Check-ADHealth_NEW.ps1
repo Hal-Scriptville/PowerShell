@@ -1,6 +1,6 @@
 $comp = $env:computername 
-$org = "YourCompanyName" # Change this to your actual company name
-$baseDir = "D:\Temp" # Base directory for script execution
+$org = "YourCompanyName"  # Change this to your actual company name
+$baseDir = "D:\Temp"  # Base directory for script execution
 $orgDir = Join-Path -Path $baseDir -ChildPath $org
 
 # Function to write logs
@@ -31,42 +31,34 @@ $transcriptFileName = Join-Path -Path $orgDir -ChildPath "${comp}_transcript.txt
 Start-Transcript -Path $transcriptFileName -ErrorAction Continue
 Write-Log "Started transcript at $transcriptFileName"
 
-# Collect FSMO Roles Information
-try {
-    $forest = Get-ADForest
-    $domain = Get-ADDomain
-
-    $FSMORoles = @{
-        "Schema Master" = $forest.SchemaMaster;
-        "Domain Naming Master" = $forest.DomainNamingMaster;
-        "Infrastructure Master" = $domain.InfrastructureMaster;
-        "RID Master" = $domain.RIDMaster;
-        "PDC Emulator" = $domain.PDCEmulator;
-    }
-
-    $FSMORolesFilePath = Join-Path -Path $orgDir -ChildPath "FSMORoles.txt"
-    $FSMORoles | Out-File -FilePath $FSMORolesFilePath
-    Write-Log "FSMO roles collected successfully and written to $FSMORolesFilePath"
-} catch {
-    Handle-Error $_.Exception.Message
-}
-
-# Handling domain controllers
+# Collecting data for each Domain Controller
 $DCs = Get-ADDomainController -Filter *
 foreach ($DC in $DCs) {
     $dcPath = Join-Path -Path $orgDir -ChildPath ($DC.Name -replace "[^a-zA-Z0-9]", "_")
 
-    # Check and create directory for each DC
+    # Ensure directory for each DC
     if (-not (Test-Path -Path $dcPath)) {
         New-Item -Path $dcPath -ItemType Directory -Force | Out-Null
         Write-Log "Created directory for DC: $dcPath"
     }
 
-    # Perform operations for each DC
-    $filePath = Join-Path -Path $dcPath -ChildPath "info.txt"
     try {
-        "Information for $DC" | Out-File -Path $filePath
-        Write-Log "Successfully wrote information for $($DC.Name) to $filePath"
+        # Replication information
+        $replicationFilePath = Join-Path -Path $dcPath -ChildPath "replication_info.txt"
+        repadmin /showrepl $DC.HostName | Out-File -Path $replicationFilePath
+        Write-Log "Replication info written for $($DC.Name)"
+
+        # HotFix information
+        $hotFixFilePath = Join-Path -Path $dcPath -ChildPath "hotfixes.txt"
+        Get-HotFix -ComputerName $DC.Name | Format-List | Out-File -Path $hotFixFilePath
+        Write-Log "Hotfix info written for $($DC.Name)"
+
+        # System and Application logs
+        $appLogPath = Join-Path -Path $dcPath -ChildPath "app_log.csv"
+        Get-EventLog -LogName Application -Newest 50 -ComputerName $DC.Name | Select-Object TimeGenerated, Source, InstanceID, Message | Export-Csv -Path $appLogPath -NoTypeInformation
+        $sysLogPath = Join-Path -Path $dcPath -ChildPath "sys_log.csv"
+        Get-EventLog -LogName System -Newest 50 -ComputerName $DC.Name | Select-Object TimeGenerated, Source, InstanceID, Message | Export-Csv -Path $sysLogPath -NoTypeInformation
+        Write-Log "Event logs written for $($DC.Name)"
     } catch {
         Handle-Error $_.Exception.Message
     }
