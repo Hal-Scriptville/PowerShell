@@ -16,6 +16,28 @@ function Handle-Error {
     Write-Log "ERROR: $error"
 }
 
+function Check-ADBackup {
+    param(
+        [string]$DCName,
+        [string]$dcPath  # Added parameter for the DC-specific path
+    )
+    try {
+        $backupCheck = Get-ADObject -Identity "CN=NTDS Settings,CN=$DCName,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,$((Get-ADDomain).DistinguishedName)" -Properties lastBackup -Server $DCName
+        if ($backupCheck.lastBackup) {
+            $lastBackupTime = [DateTime]::FromFileTime($backupCheck.lastBackup)
+            $message = "Last backup of AD on DC $DCName was at $lastBackupTime"
+        } else {
+            $message = "No backup information found for AD on DC $DCName"
+        }
+        Write-Log $message  # Keep the centralized logging
+        $backupFilePath = Join-Path -Path $dcPath -ChildPath "ADBackupStatus.txt"
+        $message | Out-File -FilePath $backupFilePath  # Write to a DC-specific file
+    } catch {
+        Handle-Error "Failed to check AD backup status for $DCName: $_"
+    }
+}
+
+
 # Ensure base and organization directories exist
 if (-not (Test-Path -Path $baseDir)) {
     New-Item -Path $baseDir -ItemType Directory -Force | Out-Null
@@ -101,6 +123,10 @@ foreach ($DC in $DCs) {
         $hotFixFilePath = Join-Path -Path $dcPath -ChildPath "hotfixes.txt"
         Get-HotFix -ComputerName $DC.Name | Format-List | Out-File -FilePath $hotFixFilePath
         Write-Log "Hotfix info for $($DC.Name) written to $hotFixFilePath"
+
+        # Check AD backup status
+        Check-ADBackup -DCName $DC.Name -dcPath $dcPath
+
 
         # Application and System logs
         $appLogPath = Join-Path -Path $dcPath -ChildPath "app_log.csv"
