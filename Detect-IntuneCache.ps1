@@ -1,8 +1,9 @@
 # Detection Script
+$folderPath = 'C:\Windows\System32\config\systemprofile\AppData\Local\mdm'
+$folderSize = (Get-ChildItem -Path $folderPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
+$maxSize = 100MB
 
-$msiFiles = Get-ChildItem -Path 'C:\Windows\System32\config\systemprofile\AppData\Local\mdm' -Filter *.msi -File -ErrorAction SilentlyContinue
-
-if ($msiFiles.Count -gt 0) {
+if ($folderSize -gt $maxSize) {
     write-host "Remediation needed" -foregroundcolor red
     exit 1  # Remediation needed
 } else {
