@@ -1,34 +1,14 @@
-# Paths to check for the winget executable
-$possibleWingetPaths = @(
-    "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\winget.exe",
-    "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*\winget.exe",
-    "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
-)
+# Get the list of applications with upgrades available
+$upgradeList = winget list --upgrade-available
 
-# Function to check if winget is installed
-function Get-WingetPath {
-    foreach ($path in $possibleWingetPaths) {
-        $resolvedPaths = Get-ChildItem -Path $path -ErrorAction SilentlyContinue
-        if ($resolvedPaths) {
-            return $resolvedPaths.FullName
-        }
-    }
-    return $null
-}
-
-$wingetPath = Get-WingetPath
-
-if ($null -eq $wingetPath) {
-    Write-Error "Winget is not installed or the path is incorrect."
-    exit 1
-}
-
-# Check if there are updates available
-$updates = & $wingetPath list --upgrade
-if ($updates) {
-    Write-Output "Updates available"
-    exit 1
+# Check if any upgrades are available
+if ($upgradeList) {
+    # If any applications have updates available, list them
+    Write-Host "Applications with updates available:"
+    Write-Host $upgradeList
+    exit 1  # Exit with 1 indicating updates are available (non-compliance)
 } else {
-    Write-Output "No updates available"
-    exit 0
+    # No upgrades available, all apps are up-to-date
+    Write-Host "All applications are up-to-date"
+    exit 0  # Exit with 0 indicating compliance
 }
