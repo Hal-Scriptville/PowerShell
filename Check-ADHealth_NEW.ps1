@@ -33,7 +33,7 @@ function Check-ADBackup {
         $backupFilePath = Join-Path -Path $dcPath -ChildPath "ADBackupStatus.txt"
         $message | Out-File -FilePath $backupFilePath  # Write to a DC-specific file
     } catch {
-        Handle-Error "Failed to check AD backup status for $DCName: $_"
+        Handle-Error "Failed to check AD backup status for $DCName $_"
     }
 }
 
