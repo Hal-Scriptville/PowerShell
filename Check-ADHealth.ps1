@@ -1,95 +1,113 @@
-$comp = $env:computername 
-$org = "Change to Company Name"
-$FormatEnumerationLimit = -1
-Import-Module -Name ActiveDirectory -ErrorAction Stop
+# Check-ADHealth.ps1
+<#
+.SYNOPSIS
+PowerShell script for comprehensive Active Directory health monitoring and reporting.
 
-Write-Output "Creating directory for $org"
-New-Item -Path . -Name $org -ItemType Directory -ErrorAction Continue
+.DESCRIPTION
+This script performs comprehensive diagnostics on Active Directory environment by collecting
+critical information from domain controllers, including replication status, FSMO roles,
+event logs, and system information.
 
+.PARAMETER org
+Organization name used for creating output directories and file naming.
 
-# Start the transcript with a new file name including "transcript"
-$transcriptFileName = ".\$org\${comp}_transcript.txt"
+.PARAMETER baseDir
+Base directory where all output files will be stored. Defaults to D:\Temp.
+#>
 
-Start-Transcript -Path $transcriptFileName -ErrorAction Continue
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$org,
+    [Parameter(Mandatory=$false)]
+    [string]$baseDir = "D:\Temp"
+)
 
-
-# List of Active Directory sites
-Write-Output "Collecting list of Active Directory sites"
-Get-ADReplicationSite -Filter * | Format-Table -AutoSize | Out-File -FilePath .\$org\Sites.txt
-
-# List replication information for each domain controller
-Write-Output "Collecting replication information for each domain controller"
-$DCs = Get-ADDomainController -Filter *
-foreach ($DC in $DCs) {
-    Write-Output "Replication information for $DC"
-    repadmin /showrepl $DC.HostName | Out-File -FilePath .\$org\ReplicationInfo_$($DC.Name).txt
+# Create base directory structure
+$orgDir = Join-Path -Path $baseDir -ChildPath $org
+if (-not (Test-Path -Path $orgDir)) {
+    New-Item -Path $orgDir -ItemType Directory -Force
 }
 
-# List all domain controllers
-Write-Output "Collecting list of all domain controllers"
-$DCs | Select-Object Name | Out-File -FilePath .\$org\AllDCs.txt
-
-# Get list of global catalog servers
-Write-Output "Collecting list of global catalog servers"
-Get-ADDomainController -Filter {IsGlobalCatalog -eq $true} | Select-Object Name | Out-File -FilePath .\$org\GlobalCatalogs.txt
-
-# Find primary DC and Time Service host
-Write-Output "Finding primary DC and Time Service host"
-Get-ADDomainController -Discover -Service "PrimaryDC","TimeService" | Out-File -FilePath .\$org\PrimaryDCTimeService.txt
-
-# Collect HotFix information for each DC
-Write-Output "Collecting HotFix information for each DC"
-foreach ($DC in $DCs) {
-    Write-Output "Collecting HotFixes for $($DC.Name)"
-    $hotfixes = Get-WmiObject -Class Win32_QuickFixEngineering -ComputerName $DC.Name
-    $hotfixes | Select-Object Description, HotFixID, InstalledOn | Out-File -FilePath .\$org\HotFixes_$($DC.Name).txt
+# Function to write logs
+function Write-Log {
+    param([string]$message)
+    $logPath = Join-Path -Path $orgDir -ChildPath "script_log.txt"
+    "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')): $message" | Out-File -FilePath $logPath -Append
 }
 
-# Collect FSMO Roles Information
-Write-Output "Collecting FSMO Roles Information"
-$forest = Get-ADForest
-$domain = Get-ADDomain
-
-$FSMORoles = @{
-    "Schema Master" = $forest.SchemaMaster;
-    "Domain Naming Master" = $forest.DomainNamingMaster;
-    "Infrastructure Master" = $domain.InfrastructureMaster;
-    "RID Master" = $domain.RIDMaster;
-    "PDC Emulator" = $domain.PDCEmulator;
+# Function to handle errors
+function Handle-Error {
+    param($error)
+    Write-Log "ERROR: $error"
 }
 
-$FSMORoles | Out-File -FilePath .\$org\FSMORoles.txt
+# Start transcript logging
+$transcriptPath = Join-Path -Path $orgDir -ChildPath "transcript.log"
+Start-Transcript -Path $transcriptPath
 
+try {
+    # Get all Domain Controllers
+    Write-Log "Getting Domain Controllers"
+    $DCs = Get-ADDomainController -Filter *
 
-# Collect Application and System Log for each DC
-foreach ($DC in $DCs) {
-    Write-Output "Collecting Application and System Log for $DC"
+    foreach ($DC in $DCs) {
+        # Create DC-specific directory
+        $dcDir = Join-Path -Path $orgDir -ChildPath $DC.Name
+        if (-not (Test-Path -Path $dcDir)) {
+            New-Item -Path $dcDir -ItemType Directory -Force
+        }
 
-    # Collect and export the Application log
-    Get-EventLog -LogName application -ComputerName $DC.Name -Newest 5000 |
-        Select-Object TimeGenerated, Source, EventID, EntryType, Message |
-        Export-Csv -Path ".\$org\AppLog_$($DC.Name).csv" -NoTypeInformation
+        # Collect DC specific information
+        Write-Log "Collecting information for $($DC.Name)"
 
-    # Collect and export the System log
-    Get-EventLog -LogName system -ComputerName $DC.Name -Newest 5000 |
-        Select-Object TimeGenerated, Source, EventID, EntryType, Message |
-        Export-Csv -Path ".\$org\SysLog_$($DC.Name).csv" -NoTypeInformation
+        # System Information
+        Write-Log "Getting system information for $($DC.Name)"
+        $sysInfoPath = Join-Path -Path $dcDir -ChildPath "SystemInfo.txt"
+        systeminfo /S $DC.Name > $sysInfoPath
+
+        # Event Logs
+        Write-Log "Getting event logs for $($DC.Name)"
+        $appLogPath = Join-Path -Path $dcDir -ChildPath "AppLog.csv"
+        $sysLogPath = Join-Path -Path $dcDir -ChildPath "SysLog.csv"
+        Get-EventLog -LogName Application -Newest 5000 -ComputerName $DC.Name | Export-Csv -Path $appLogPath -NoTypeInformation
+        Get-EventLog -LogName System -Newest 5000 -ComputerName $DC.Name | Export-Csv -Path $sysLogPath -NoTypeInformation
+
+        # Hotfixes
+        Write-Log "Getting hotfixes for $($DC.Name)"
+        $hotfixPath = Join-Path -Path $dcDir -ChildPath "Hotfixes.csv"
+        Get-HotFix -ComputerName $DC.Name | Export-Csv -Path $hotfixPath -NoTypeInformation
+
+        # Netlogon log
+        Write-Log "Copying netlogon.log for $($DC.Name)"
+        $remoteNetlogonPath = "\\$($DC.Name)\c$\windows\debug\netlogon.log"
+        $localNetlogonPath = Join-Path -Path $dcDir -ChildPath "netlogon.log"
+        Copy-Item -Path $remoteNetlogonPath -Destination $localNetlogonPath -ErrorAction Continue
+    }
+
+    # Collect AD-wide information
+    Write-Log "Collecting AD-wide information"
+
+    # FSMO Roles
+    Write-Log "Getting FSMO roles"
+    $fsmoPath = Join-Path -Path $orgDir -ChildPath "FSMORoles.txt"
+    netdom query fsmo > $fsmoPath
+
+    # Replication Status
+    Write-Log "Getting replication status"
+    $replPath = Join-Path -Path $orgDir -ChildPath "ReplicationStatus.txt"
+    repadmin /showrepl * /csv > $replPath
+
+    # Sites and Services
+    Write-Log "Getting sites and services information"
+    $sitesPath = Join-Path -Path $orgDir -ChildPath "ADSites.txt"
+    nltest /server:$env:COMPUTERNAME /dsgetsite > $sitesPath
+
+    Write-Log "Script completed successfully"
 }
-
-
-# Create computer subdirectory for each DC
-foreach ($DC in $DCs) {
-    Write-Output "Creating subdirectory for $DC"
-    New-Item -Path .\$org -Name $DC.Name -ItemType Directory
+catch {
+    Handle-Error $_
+    Write-Log "Script terminated with errors"
 }
-
-# Copy netlogon.log to each DC's subdirectory
-foreach ($DC in $DCs) {
-    Write-Output "Copying netlogon.log for $($DC.Name)"
-    $remoteNetlogonPath = "\\" + $DC.Name + "\c$\windows\debug\netlogon.log"
-    $localNetlogonPath = ".\$org\$($DC.Name)\netlogon.log"
-    Copy-Item -Path $remoteNetlogonPath -Destination $localNetlogonPath -ErrorAction Continue
+finally {
+    Stop-Transcript
 }
-
-
-Stop-Transcript
