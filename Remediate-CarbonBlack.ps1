@@ -6,7 +6,7 @@ try {
     # Uninstall Carbon Black using uninstall code
     $cbPath = "C:\Program Files\CarbonBlack\CbDefense\"
     $uninstallCode = "YOUR-UNINSTALL-CODE-HERE"  # Replace with actual uninstall code
-    $uninstallCmd = "$cbPath\cbuninstall.exe /quiet /norestart /CODE=$uninstallCode"
+    $uninstallCmd = "$cbPath\cbuninstall.exe /quiet /norestart /uninstall $uninstallCode"
 
     if (Test-Path "$cbPath\cbuninstall.exe") {
         $process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c $uninstallCmd" -Wait -NoNewWindow -PassThru
