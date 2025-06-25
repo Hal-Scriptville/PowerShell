@@ -20,14 +20,18 @@ foreach ($folder in $folders) {
     }
 }
 
-# Download IntuneWinAppUtil
-$downloadUrl = "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/blob/master/IntuneWinAppUtil.exe"
+# Updated correct binary download URL
+$downloadUrl = "https://raw.githubusercontent.com/microsoft/Microsoft-Win32-Content-Prep-Tool/master/IntuneWinAppUtil.exe"
 $destination = Join-Path -Path $basePath -ChildPath "IntuneWinAppUtil.exe"
 
 try {
     Write-Host "Downloading IntuneWinAppUtil.exe..."
     Invoke-WebRequest -Uri $downloadUrl -OutFile $destination -UseBasicParsing
     Write-Host "Download complete: $destination"
+
+    # Unblock the file
+    Unblock-File -Path $destination
+    Write-Host "File unblocked."
 } catch {
     Write-Warning "Failed to download IntuneWinAppUtil.exe: $_"
 }
