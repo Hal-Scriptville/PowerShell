@@ -21,7 +21,7 @@ foreach ($folder in $folders) {
 }
 
 # Download IntuneWinAppUtil
-$downloadUrl = "https://aka.ms/intunewinapputil"
+$downloadUrl = "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/blob/master/IntuneWinAppUtil.exe"
 $destination = Join-Path -Path $basePath -ChildPath "IntuneWinAppUtil.exe"
 
 try {
