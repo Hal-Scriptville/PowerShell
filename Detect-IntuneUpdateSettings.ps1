@@ -11,11 +11,20 @@ $ErrorActionPreference = 'Stop'
 $wsusRegistryPaths = @(
     @{
         Path = 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate'
-        Values = @('WUServer', 'WUStatusServer', 'DoNotConnectToWindowsUpdateInternetLocations', 'ElevateNonAdmins', 'TargetGroup', 'TargetGroupEnabled')
+        Values = @(
+            'WUServer', 'WUStatusServer', 'DoNotConnectToWindowsUpdateInternetLocations', 
+            'ElevateNonAdmins', 'TargetGroup', 'TargetGroupEnabled', 'FillEmptyContentUrls',
+            'SetProxyBehaviorForUpdateDetection', 'UpdateServiceUrlAlternate', 'UseUpdateClassPolicySource'
+        )
     },
     @{
         Path = 'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU'
-        Values = @('UseWUServer', 'AUOptions', 'AutoInstallMinorUpdates', 'DetectionFrequency', 'DetectionFrequencyEnabled', 'NoAutoUpdate', 'NoAutoRebootWithLoggedOnUsers', 'RebootRelaunchTimeout', 'RebootWarningTimeout', 'RescheduleWaitTime', 'ScheduledInstallDay', 'ScheduledInstallTime')
+        Values = @(
+            'UseWUServer', 'AUOptions', 'AutoInstallMinorUpdates', 'DetectionFrequency', 
+            'DetectionFrequencyEnabled', 'NoAutoUpdate', 'NoAutoRebootWithLoggedOnUsers', 
+            'RebootRelaunchTimeout', 'RebootWarningTimeout', 'RescheduleWaitTime', 
+            'ScheduledInstallDay', 'ScheduledInstallTime'
+        )
     }
 )
 
