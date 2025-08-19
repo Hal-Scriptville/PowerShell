@@ -6,12 +6,13 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Registry paths to clean up
+# Registry paths to clean up - process both parent and child paths
 $cleanupPaths = @(
+    'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU',
     'HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate'
 )
 
-# Function to safely remove registry keys with logging
+# Function to safely remove registry values and keys
 function Remove-WSUSRegistry {
     param (
         [string]$RegistryPath
@@ -23,31 +24,60 @@ function Remove-WSUSRegistry {
     }
     
     try {
-        # Log what we're about to remove
-        $itemsToRemove = @()
-        Get-ChildItem -Path $RegistryPath -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-            $itemsToRemove += $_.PSPath
+        # Get all properties first for logging
+        $properties = Get-ItemProperty -Path $RegistryPath -ErrorAction SilentlyContinue
+        $wsusProperties = @()
+        
+        # List of WSUS-related property names to remove
+        $wsusValueNames = @(
+            'WUServer', 'WUStatusServer', 'DoNotConnectToWindowsUpdateInternetLocations',
+            'ElevateNonAdmins', 'TargetGroup', 'TargetGroupEnabled', 'UseWUServer',
+            'AUOptions', 'AutoInstallMinorUpdates', 'DetectionFrequency', 
+            'DetectionFrequencyEnabled', 'NoAutoUpdate', 'NoAutoRebootWithLoggedOnUsers',
+            'RebootRelaunchTimeout', 'RebootWarningTimeout', 'RescheduleWaitTime',
+            'ScheduledInstallDay', 'ScheduledInstallTime', 'FillEmptyContentUrls',
+            'SetProxyBehaviorForUpdateDetection', 'UpdateServiceUrlAlternate',
+            'UseUpdateClassPolicySource'
+        )
+        
+        # Check which WSUS properties exist
+        foreach ($valueName in $wsusValueNames) {
+            if ($null -ne $properties.$valueName) {
+                $wsusProperties += "$valueName = $($properties.$valueName)"
+            }
         }
         
-        # Get the properties in the root key
-        $rootProperties = Get-ItemProperty -Path $RegistryPath -ErrorAction SilentlyContinue
-        $propertyNames = ($rootProperties.PSObject.Properties | Where-Object { $_.Name -notlike "PS*" }).Name
-        
-        if ($propertyNames) {
-            Write-Output "Removing properties from ${RegistryPath}: $($propertyNames -join ', ')"
+        if ($wsusProperties.Count -gt 0) {
+            Write-Output "Found WSUS properties in ${RegistryPath}: $($wsusProperties -join '; ')"
+            
+            # Remove individual WSUS properties
+            foreach ($valueName in $wsusValueNames) {
+                if ($null -ne $properties.$valueName) {
+                    try {
+                        Remove-ItemProperty -Path $RegistryPath -Name $valueName -Force -ErrorAction Stop
+                        Write-Output "Removed property: $RegistryPath\$valueName"
+                    }
+                    catch {
+                        Write-Output "Could not remove property $RegistryPath\$valueName - $($_.Exception.Message)"
+                    }
+                }
+            }
         }
         
-        if ($itemsToRemove) {
-            Write-Output "Removing subkeys: $($itemsToRemove -join '; ')"
+        # Check if the key is now empty (only has default properties), if so remove it
+        $remainingProperties = Get-ItemProperty -Path $RegistryPath -ErrorAction SilentlyContinue
+        $nonDefaultProps = ($remainingProperties.PSObject.Properties | Where-Object { $_.Name -notlike "PS*" }).Name
+        
+        if (-not $nonDefaultProps -or $nonDefaultProps.Count -eq 0) {
+            # Key is empty, remove it entirely
+            Remove-Item -Path $RegistryPath -Recurse -Force -ErrorAction Stop
+            Write-Output "Removed empty registry key: $RegistryPath"
         }
         
-        # Remove the entire key and all subkeys
-        Remove-Item -Path $RegistryPath -Recurse -Force -ErrorAction Stop
-        Write-Output "Successfully removed: $RegistryPath"
         return $true
     }
     catch {
-        Write-Output "ERROR: Failed to remove $RegistryPath - $($_.Exception.Message)"
+        Write-Output "ERROR: Failed to process $RegistryPath - $($_.Exception.Message)"
         return $false
     }
 }
