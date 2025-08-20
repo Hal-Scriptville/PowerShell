@@ -138,8 +138,8 @@ try {
 
     # Remediation 8: Trigger Configuration Manager client actions to re-evaluate policies
     try {
-        $ccmPath = (Get-WmiObject -Namespace "root\ccm" -Class "SMS_Client" -ErrorAction SilentlyContinue).ClientVersion
-        if ($ccmPath) {
+        $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class "SMS_Client" -ErrorAction SilentlyContinue
+        if ($ccmClient) {
             # Trigger co-management policy evaluation
             Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule" -ArgumentList "{00000000-0000-0000-0000-000000000032}" -ErrorAction SilentlyContinue
             # Trigger Windows Update policy evaluation  
@@ -155,7 +155,7 @@ try {
         $updateSession = New-Object -ComObject "Microsoft.Update.Session"
         $updateSearcher = $updateSession.CreateUpdateSearcher()
         $updateSearcher.Online = $true
-        $null = $updateSearcher.Search("IsInstalled=0")
+        $searchResult = $updateSearcher.Search("IsInstalled=0")
         $remediationActions += "Forced Windows Update detection cycle"
     } catch {
         Write-Warning "Could not force Windows Update detection: $($_.Exception.Message)"
@@ -165,7 +165,7 @@ try {
     if ($remediationActions.Count -gt 0) {
         Write-Host "Remediation completed. Actions taken:"
         foreach ($action in $remediationActions) {
-            Write-Host "✓ $action"
+            Write-Host "- $action"
         }
         Write-Host ""
         Write-Host "Recommendations:"
