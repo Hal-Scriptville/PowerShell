@@ -8,10 +8,10 @@ $issues = @()
 try {
     # Check if device is co-managed
     $coMgmtPath = "HKLM:\SOFTWARE\Microsoft\DeviceManageabilityCSP\Provider\MS DM Server\FirstSyncStatus"
-    if (-not (Test-Path $coMgmtPath)) {
-        Write-Output "Device is not co-managed. Skipping remediation."
-        exit 0
-    }
+    # if (-not (Test-Path $coMgmtPath)) {
+    #    Write-Output "Device is not co-managed. Skipping remediation."
+    #    exit 0
+    # }
 
     # Check Windows Update workload capability (bit 3 = Windows Update Policies)
     $capabilityPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"
@@ -111,5 +111,6 @@ try {
     Write-Error "Error during detection: $($_.Exception.Message)"
     $exitCode = 1
 }
+
 
 exit $exitCode
