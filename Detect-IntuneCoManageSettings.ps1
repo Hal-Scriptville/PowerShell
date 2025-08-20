@@ -91,8 +91,8 @@ try {
         }
 
     } else {
-        Write-Host "Windows Update workload is not assigned to Intune - no remediation needed"
-        exit 0
+        Write-Host "Windows Update workload is not assigned to Intune - will remediate"
+        exit 1
     }
 
     # Report findings
@@ -114,3 +114,4 @@ try {
 
 
 exit $exitCode
+
