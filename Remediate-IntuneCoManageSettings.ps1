@@ -61,10 +61,10 @@ try {
 
         # Remediation 4: Configure Scan Source policies for cloud updates
         $scanSourcePolicies = @(
-            "PolicyDrivenUpdateSourceForFeatureUpdates",
-            "PolicyDrivenUpdateSourceForQualityUpdates", 
-            "PolicyDrivenUpdateSourceForDriverUpdates",
-            "PolicyDrivenUpdateSourceForOtherUpdates"
+            "SetPolicyDrivenUpdateSourceForFeatureUpdates",
+            "SetPolicyDrivenUpdateSourceForQualityUpdates", 
+            "SetPolicyDrivenUpdateSourceForDriverUpdates",
+            "SetPolicyDrivenUpdateSourceForOtherUpdates"
         )
 
         foreach ($policy in $scanSourcePolicies) {
@@ -185,5 +185,6 @@ try {
 }
 
 exit $exitCode
+
 
 
