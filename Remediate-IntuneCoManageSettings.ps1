@@ -17,11 +17,11 @@ try {
     $capability = Get-ItemProperty -Path $capabilityPath -Name "CoMgmtCapability" -ErrorAction SilentlyContinue
     
     if (-not $capability -or -not ($capability.CoMgmtCapability -band 4)) {
-        Write-Output "Windows Update workload is not assigned to Intune. Exiting."
-        exit 0
+        Write-Output "Windows Update workload is not showing as assigned to Intune. Will continue with remediation steps."
+        # exit 0
     }
 
-    Write-Host "Starting remediation for co-managed device with Windows Update workload assigned to Intune"
+    Write-Host "Starting remediation for device"
 
     # Registry paths
     $dualscanPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
@@ -185,4 +185,5 @@ try {
 }
 
 exit $exitCode
+
 
