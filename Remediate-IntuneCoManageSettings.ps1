@@ -7,11 +7,11 @@ $remediationActions = @()
 
 try {
     # Verify device is co-managed and workload is assigned to Intune
-    $coMgmtPath = "HKLM:\SOFTWARE\Microsoft\DeviceManageabilityCSP\Provider\MS DM Server\FirstSyncStatus"
-    if (-not (Test-Path $coMgmtPath)) {
-        Write-Output "Device is not co-managed. Exiting."
-        exit 0
-    }
+    # $coMgmtPath = "HKLM:\SOFTWARE\Microsoft\DeviceManageabilityCSP\Provider\MS DM Server\FirstSyncStatus"
+    # if (-not (Test-Path $coMgmtPath)) {
+    #    Write-Output "Device is not co-managed. Exiting."
+    #    exit 0
+    # }
 
     $capabilityPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"
     $capability = Get-ItemProperty -Path $capabilityPath -Name "CoMgmtCapability" -ErrorAction SilentlyContinue
@@ -185,3 +185,4 @@ try {
 }
 
 exit $exitCode
+
