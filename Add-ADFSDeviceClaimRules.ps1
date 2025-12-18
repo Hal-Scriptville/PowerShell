@@ -142,7 +142,7 @@ c1:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid", 
 @RuleName = "Issue primarySID for domain-joined computers"
 c1:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid", Value =~ "-515$", Issuer =~ "^(AD AUTHORITY|SELF AUTHORITY|LOCAL AUTHORITY)$"]
  && c2:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid", Issuer =~ "^(AD AUTHORITY|SELF AUTHORITY|LOCAL AUTHORITY)$"]
- => issue(claims = c2);
+ => issue(claim = c2);
 
 @RuleName = "Issue issuerID for domain-joined computers"
 c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid", Value =~ "-515$", Issuer =~ "^(AD AUTHORITY|SELF AUTHORITY|LOCAL AUTHORITY)$"]
