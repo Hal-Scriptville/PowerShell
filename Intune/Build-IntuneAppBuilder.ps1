@@ -29,14 +29,16 @@
     Useful when EDR (e.g., FortiEDR) blocks PowerShell web requests.
 
 .EXAMPLE
-    .\Build-IntuneAppBuilder.ps1 -AppName "NinjaOne" -Build
+    .\Build-IntuneAppBuilder.ps1 -AppName "Chrome" -Build
 
 .EXAMPLE
-    .\Build-IntuneAppBuilder.ps1 -AppName "NinjaOne" -UseCurl -Build
+    .\Build-IntuneAppBuilder.ps1 -AppName "Chrome" -UseCurl -Build
 
 .NOTES
     Stub scripts are templates only. Edit install.ps1, uninstall.ps1, and detect.ps1
     before running -Build for a real deployment.
+
+    See Examples\Chrome\ for a complete reference package.
 #>
 [CmdletBinding()]
 param(
