@@ -45,10 +45,23 @@
       -ToolPath "C:\Build\Intune\IntuneWinAppUtil.exe" -Build
 
 .NOTES
+    Version: 3.0
     Stub scripts are templates only. Edit install.ps1, uninstall.ps1, and detect.ps1
     before running -Build for a real deployment.
 
     See Examples\Chrome\ for a complete reference package.
+
+    Changelog:
+      3.0 — Added -ToolPath to reuse a shared IntuneWinAppUtil.exe across apps.
+            Added companion New-IntuneApp.ps1 for lightweight per-app scaffolds
+            under a shared build root.
+      2.0 — Parameterized (AppName, BasePath, SetupFile, UseCurl).
+            Added -Build to invoke IntuneWinAppUtil and produce .intunewin.
+            Added install/uninstall/detect stub scripts.
+            Idempotent tool download; prints SHA256.
+            Chrome reference package under Examples\Chrome\.
+      1.0 — Original scaffolder: creates App\{Intune,Source,Detection,Output}
+            and downloads IntuneWinAppUtil.exe.
 #>
 [CmdletBinding()]
 param(
