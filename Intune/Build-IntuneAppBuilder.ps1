@@ -28,11 +28,21 @@
     Use curl.exe for the IntuneWinAppUtil.exe download instead of Invoke-WebRequest.
     Useful when EDR (e.g., FortiEDR) blocks PowerShell web requests.
 
+.PARAMETER ToolPath
+    Absolute path to an existing IntuneWinAppUtil.exe. When set, the tool is
+    reused from this location and NOT downloaded into the app folder.
+    Typical use: one shared tool under C:\Build\Intune\IntuneWinAppUtil.exe
+    referenced by every app scaffold.
+
 .EXAMPLE
     .\Build-IntuneAppBuilder.ps1 -AppName "Chrome" -Build
 
 .EXAMPLE
     .\Build-IntuneAppBuilder.ps1 -AppName "Chrome" -UseCurl -Build
+
+.EXAMPLE
+    .\Build-IntuneAppBuilder.ps1 -AppName "Chrome" `
+      -ToolPath "C:\Build\Intune\IntuneWinAppUtil.exe" -Build
 
 .NOTES
     Stub scripts are templates only. Edit install.ps1, uninstall.ps1, and detect.ps1
@@ -45,6 +55,7 @@ param(
     [string]$AppName   = "App",
     [string]$BasePath  = (Join-Path -Path $PSScriptRoot -ChildPath $AppName),
     [string]$SetupFile = "install.ps1",
+    [string]$ToolPath,
     [switch]$Build,
     [switch]$Force,
     [switch]$UseCurl
@@ -71,11 +82,22 @@ foreach ($folder in $folders) {
     }
 }
 
-# ---- IntuneWinAppUtil.exe download ----------------------------------------
+# ---- IntuneWinAppUtil.exe resolution ---------------------------------------
 $toolUrl = "https://raw.githubusercontent.com/microsoft/Microsoft-Win32-Content-Prep-Tool/master/IntuneWinAppUtil.exe"
-$toolPath = Join-Path $BasePath "IntuneWinAppUtil.exe"
 
-if ((Test-Path $toolPath) -and -not $Force) {
+if ($ToolPath) {
+    if (-not (Test-Path $ToolPath)) {
+        throw "ToolPath does not exist: $ToolPath"
+    }
+    $toolPath = (Resolve-Path $ToolPath).Path
+    Write-Host "Using shared tool: $toolPath"
+} else {
+    $toolPath = Join-Path $BasePath "IntuneWinAppUtil.exe"
+}
+
+if ($ToolPath) {
+    # Shared tool path provided — skip download logic entirely.
+} elseif ((Test-Path $toolPath) -and -not $Force) {
     Write-Host "Tool already present: $toolPath (use -Force to re-download)"
 } else {
     Write-Host "Downloading IntuneWinAppUtil.exe..."
