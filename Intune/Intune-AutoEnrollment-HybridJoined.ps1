@@ -59,6 +59,42 @@ function Get-LoggedOnUserUpn {
     return $null
 }
 
+# Intune License Check via Microsoft Graph
+function Test-UserIntuneLicense {
+    param([string]$Upn)
+
+    if (-not $Upn) {
+        Write-Log "LICENSE CHECK: No UPN available — skipping license validation."
+        return $null  # null = unknown, not failed
+    }
+
+    # Requires Microsoft.Graph.Users module
+    if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Users -ErrorAction SilentlyContinue)) {
+        Write-Log "LICENSE CHECK: Microsoft.Graph.Users module not available — skipping."
+        return $null
+    }
+
+    try {
+        Connect-MgGraph -Scopes "User.Read.All" -NoWelcome -ErrorAction Stop | Out-Null
+        $plans = Get-MgUserLicenseDetail -UserId $Upn -ErrorAction Stop |
+                 Select-Object -ExpandProperty ServicePlans |
+                 Where-Object { $_.ServicePlanName -like "*INTUNE*" -and $_.ProvisioningStatus -eq "Success" }
+
+        Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
+
+        if ($plans) {
+            Write-Log "LICENSE CHECK: $Upn has Intune license ($($plans[0].ServicePlanName))."
+            return $true
+        } else {
+            Write-Log "LICENSE CHECK: $Upn has NO active Intune service plan — enrollment will fail."
+            return $false
+        }
+    } catch {
+        Write-Log "LICENSE CHECK: Graph query failed for $Upn — $($_.Exception.Message)"
+        return $null
+    }
+}
+
 # Parse dsregcmd output for specific value
 function Get-DsRegValue {
     param(
@@ -189,6 +225,17 @@ if ($alreadyEnrolled) {
 
     if (-not $userPresent) {
         Write-Log "WARNING: No interactive user detected; enrollment may defer until next sign-in."
+    }
+
+    # License check — enrollment will silently fail if user has no Intune license
+    $licenseResult = Test-UserIntuneLicense -Upn $loggedOnUser
+    if ($licenseResult -eq $false) {
+        Write-Log "FATAL: $loggedOnUser is not licensed for Intune. Assign a license before enrolling."
+        Write-Output "ENROLLMENT BLOCKED: User '$loggedOnUser' has no Intune license."
+        Write-Output "Assign Microsoft Intune Plan 1 (or M365 Business Premium / EMS E3) in M365 Admin, then re-run."
+        exit 6
+    } elseif ($licenseResult -eq $null) {
+        Write-Log "WARNING: License check inconclusive — proceeding, but verify license if enrollment fails."
     }
 
     # Hardened MDM Policy Write
@@ -342,6 +389,10 @@ if ($enrolled -or $alreadyEnrolled) {
     $deviceDetails.EnrollmentStatus = "Deferred - No User"
     Write-Log "DEFERRED: Enrollment deferred until user login."
     $exitCode = 4  # No interactive user
+} elseif ($licenseResult -eq $false) {
+    $deviceDetails.EnrollmentStatus = "Blocked - No License"
+    Write-Log "BLOCKED: User has no Intune license."
+    $exitCode = 6  # No Intune license
 } else {
     $deviceDetails.EnrollmentStatus = "Pending"
     Write-Log "PENDING: Enrollment attempted but not yet confirmed."
