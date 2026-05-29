@@ -29,7 +29,7 @@
     CHANGE RECORD:
     --------------
     CR#:            [TBD]
-    Requested By:   Scott Klander / Paul
+    Requested By:   [TBD]
     Approved By:    [TBD]
     Implementation: GPO Startup Script / ManageEngine
     Rollback:       Restore from backup in C:\ProgramData\MdmEnrollmentRemediation\Backup\
