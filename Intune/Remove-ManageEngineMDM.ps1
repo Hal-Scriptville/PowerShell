@@ -141,10 +141,10 @@ function Write-Log {
 # DISCOVERY
 # ============================================================================
 function Get-TargetEnrollments {
-    # NOTE: do not use $matches here — it is the automatic variable set by -match.
+    # NOTE: do not use $matches here - it is the automatic variable set by -match.
     $results = @()
     if (-not (Test-Path $Script:EnrollmentsRoot)) {
-        Write-Log "No Enrollments key present — device has no MDM enrollment." -Level INFO
+        Write-Log "No Enrollments key present - device has no MDM enrollment." -Level INFO
         return $results
     }
 
@@ -214,7 +214,7 @@ function Remove-EnrollmentArtifacts {
         "HKLM:\SOFTWARE\Microsoft\PolicyManager\Providers\$Guid"
     )
 
-    # Backup first (always, even in DetectOnly we skip — backup only when changing).
+    # Backup first (always, even in DetectOnly we skip - backup only when changing).
     foreach ($t in $regTargets) { Backup-Key -RegPath $t }
 
     foreach ($t in $regTargets) {
@@ -286,7 +286,7 @@ function Remove-Agent {
         $cmd = $app.QuietUninstallString
         if (-not $cmd) { $cmd = $app.UninstallString }
         if (-not $cmd) {
-            Write-Log "No uninstall string for '$($app.DisplayName)' — skipping." -Level WARN
+            Write-Log "No uninstall string for '$($app.DisplayName)' - skipping." -Level WARN
             continue
         }
 
