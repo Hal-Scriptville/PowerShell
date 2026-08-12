@@ -1,3 +1,8 @@
+# SUPERSEDED 2026-08-12 -- correct registry path but no backup before delete, no
+# check for whether blocking values are actually present, and doesn't address the
+# SetDisableUXWUAccess/SetDisablePauseUXAccess siblings found live 8/12. Use
+# Remediate-WUfBHealth.ps1 instead (backs up first, targeted, handles both).
+
 # Remediation script for Intune Proactive Remediation
 $keyPath = "HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU"
 $serviceName = "wuauserv"

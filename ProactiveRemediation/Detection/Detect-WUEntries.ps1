@@ -1,3 +1,9 @@
+# SUPERSEDED 2026-08-12 -- checks HKLM:\SOFTWARE\Microsoft\Windows\WindowsUpdate\AU
+# (missing \Policies\) for NoAutoUpdate/AUOptions -- that is NOT the policy-enforcing
+# path. Would report clean on a device where those values ARE set under the correct
+# HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU path (confirmed live,
+# Whitsons 8/12 -- see Detect-WUfBHealth.ps1). Use that instead.
+
 # Detection Script for Windows Update Policy Conflicts
 # Checks for conflicting GPO/WSUS registry entries that prevent Intune Windows Update management
 

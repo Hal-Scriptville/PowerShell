@@ -1,3 +1,7 @@
+# SUPERSEDED 2026-08-12 -- BROKEN: Set-ItemProperty references $correctValue, which
+# is never defined anywhere in this script (only $expectedValue is set). Would
+# throw or write garbage. Use Remediate-WUfBHealth.ps1 instead.
+
 # Define the registry path and value
 $registryPath = "HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU"
 $valueName = "NoAutoUpdate"

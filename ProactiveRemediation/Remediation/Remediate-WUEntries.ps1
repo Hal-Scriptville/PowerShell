@@ -1,3 +1,6 @@
+# SUPERSEDED 2026-08-12 -- pairs with the flawed Detect-WUEntries.ps1 (wrong AU
+# registry path, missing \Policies\). Use Remediate-WUfBHealth.ps1 instead.
+
 # Optimized Remediation Script for Windows Update Policy Conflicts
 # Removes conflicting GPO/WSUS registry entries to allow Intune Windows Update management
 # Optimized for speed to avoid Proactive Remediation timeouts
