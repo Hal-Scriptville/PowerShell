@@ -46,8 +46,10 @@ $safeName = $gpo.DisplayName -replace '[\\/:*?"<>|]', '_'
 try {
 if ($ReportType -in @("XML", "Both")) {
 $xmlPath = Join-Path $domainFolder "$safeName.xml"
+# Unicode (UTF-16LE + BOM) is required: Get-GPOReport's XML declares encoding="utf-16",
+# and Intune Group Policy Analytics rejects the file unless the bytes match the declaration.
 Get-GPOReport -Guid $gpo.Id -Domain $Domain -ReportType XML |
-Out-File -FilePath $xmlPath -Encoding UTF8
+Out-File -FilePath $xmlPath -Encoding Unicode
 }
 
 if ($ReportType -in @("HTML", "Both")) {
